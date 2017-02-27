@@ -30,6 +30,10 @@
 				<input type="checkbox" name="hints" value="1" id="cvcHints" checked><label for="cvcHints">Show hints</label>
 			</div>
 
+			<div name="speech">
+				<input type="checkbox" name="speech" value="1" id="cvcSpeech" checked><label for="cvcSpeech">Enable Text-To-Speech</label>
+			</div>
+
 			<button>Start Drill &rarr;</button>
 		</form>
 	</div>
@@ -47,6 +51,10 @@
 
 			<div name="hints">
 				<input type="checkbox" name="hints" value="1" id="numberHints" checked><label for="numberHints">Show hints</label>
+			</div>
+
+			<div name="speech">
+				<input type="checkbox" name="speech" value="1" id="numberSpeech" checked><label for="numberSpeech">Enable Text-To-Speech</label>
 			</div>
 
 			<button>Start Drill &rarr;</button>
@@ -67,6 +75,10 @@
 
 			<div name="hints">
 				<input type="checkbox" name="hints" value="1" id="ngslHints" checked><label for="ngslHints">Show hints</label>
+			</div>
+
+			<div name="speech">
+				<input type="checkbox" name="speech" value="1" id="ngslSpeech" checked><label for="ngslSpeech">Enable Text-To-Speech</label>
 			</div>
 
 			<button>Start Drill &rarr;</button>
@@ -137,6 +149,10 @@ window.onload = function() {
 			var hints = new StenoDisplay('strokes', translations, true);
 		}
 
+		if(fields.speech) {
+			var speech = new TypeJig.Speech();
+		}
+
 		var exercise, timeLimit = 60 * fields.timeLimit;
 		if(words) {
 			var first = +fields.first || 0;
@@ -176,7 +192,7 @@ window.onload = function() {
 
 		display_only('lesson');
 
-		var jig = new TypeJig(exercise, 'exercise', 'answer', 'clock', hints);
+		var jig = new TypeJig(exercise, 'exercise', 'answer', 'clock', hints, speech);
 	}
 }
 
