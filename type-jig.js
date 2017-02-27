@@ -5,7 +5,8 @@
  * `exercise` is a TypeJig.Exercise object.
  */
 
-function TypeJig(exercise, output, input, clock, hint) {
+
+function TypeJig(exercise, output, input, clock, hint, speech) {
 	if(typeof output === 'string') output = document.getElementById(output);
 	if(typeof input === 'string') input = document.getElementById(input);
 	if(typeof clock === 'string') clock = document.getElementById(clock);
@@ -14,12 +15,15 @@ function TypeJig(exercise, output, input, clock, hint) {
 	this.ex = exercise;
 	this.out = new ScrollBox(output, input);
 	this.ans = input;
+	this.getLastAnswer = this.getLastAnswer.bind(this);
 	this.clock = new TypeJig.Timer(clock, this.ex.seconds);
 	this.hint = hint;
+  this.speech = speech;
 	this.lookahead = [];
 	this.errors = {};  this.errorCount = 0;
 	this.getWords();
 	if(this.hint && this.hint.update) this.hint.update(this.lookahead[0] || '');
+	if(this.speech && this.speech.say) this.speech.say(this.lookahead[0] || '');
 	this.scrollTo = this.out.firstChild;
 	bindEvent(input, 'input', this.answerChanged.bind(this));
 	input.focus();
@@ -58,6 +62,16 @@ TypeJig.flattenWordSet = function(a) {
     out = [];
     for(var i=0; i<a.length; ++i) out.push.apply(out, a[i]);
     return out;
+}
+
+TypeJig.prototype.getLastAnswer = function() {
+	var answerString = this.ans.textContent;
+	var answer = answerString.split(/\s+/);
+	if(answer[0] === '') answer.shift();
+
+	var m = answer.length - 1;
+
+	return answer[m];
 }
 
 TypeJig.prototype.answerChanged = function() {
@@ -100,6 +114,11 @@ TypeJig.prototype.answerChanged = function() {
 			if(!hasClass(out, 'incorrect')) {
 				this.addError(ex, ans);
 				out.className = 'incorrect';
+
+				// Speak in different voice when word is an error. Wait for all letters to come in.
+				if (this.speech) {
+					this.speech.sayLater(this.getLastAnswer, 50, 0)
+				}
 			}
 		}
 		if(out) out = out.nextSibling;
@@ -113,7 +132,7 @@ TypeJig.prototype.answerChanged = function() {
 		this.clock.stop();
 		return;
 	}
-	
+
 	// Now that we know words are appropriately marked, shift some off
 	// the beginning if our input is getting too long.
 	var limit = this.ex.inputLength;
@@ -145,6 +164,11 @@ TypeJig.prototype.answerChanged = function() {
 	this.nextWordIndex = Math.max(0, answer.length - (lastAnsweredCorrect ? 0 : 1));
 	if(this.hint && this.hint.update) {
 		this.hint.update(this.lookahead[this.nextWordIndex]);
+	}
+
+	// If we're ready for the next word and an error hasn't been spoken, say it.
+	if(this.speech && this.speech.say) {
+		if (lastAnsweredCorrect) this.speech.say(this.lookahead[this.nextWordIndex], 1)
 	}
 }
 
@@ -451,6 +475,23 @@ if (window.getSelection && document.createRange) {
         textRange.moveStart("character", savedSel.start);
         textRange.select();
     };
+}
+
+TypeJig.Speech = function() {
+	this.synth = window.speechSynthesis
+	this.voices = this.synth.getVoices()
+
+	this.say = function(text, speaker) {
+			var utterance = new SpeechSynthesisUtterance(text);
+			utterance.voice = this.voices[speaker];
+			this.synth.speak(utterance);
+	}
+
+	this.sayLater = function(callback, wait, speaker) {
+		var timeout = setTimeout( function(callback, speaker) {
+			this.say(callback(), speaker)
+		}.bind(this), wait, callback, speaker );
+	}
 }
 
 TypeJig.Timer = function(elt, seconds) {
